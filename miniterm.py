@@ -15,7 +15,14 @@ import threading
 import serial
 from serial.tools.list_ports import comports
 from serial.tools import hexlify_codec
-from TCL.tcl import Update
+from TCL import Tcl as PrinterTcl
+from RunningDisplay import *
+
+guiobject = RunningDisplay()
+
+tclobject = PrinterTcl("9600 8N1")
+guiobject.SetDevice(tclobject)
+
 
 # pylint: disable=wrong-import-order,wrong-import-position
 
@@ -181,10 +188,10 @@ class Transform(object):
         """text received from serial port"""
         if text[:2] == 'E:':
             """ EGM input """
-            # Update(text[2:])
+            tclobject.Update(text[2:])
         elif text[:2] == 'P:':
             """ Peripheral input """
-            Update(text[2:])
+            tclobject.Update(text[2:])
 
         return text
 
@@ -386,7 +393,7 @@ class Miniterm(object):
         self.transmitter_thread = threading.Thread(target=self.writer, name='tx')
         self.transmitter_thread.daemon = True
         self.transmitter_thread.start()
-        self.console.setup()
+        self.console.setup()        
 
     def stop(self):
         """set flag to stop worker threads"""
@@ -863,6 +870,7 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
                 if not args.port:
                     parser.error('port is not given')
         try:
+            guiobject.runLoop()
             serial_instance = serial.serial_for_url(
                 args.port,
                 args.baudrate,

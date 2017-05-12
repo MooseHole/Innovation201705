@@ -1,9 +1,9 @@
 from tkinter import *
 from RunningDisplay import RunningDisplay
-from testGui import statusUpdate
+from DeviceInterface import DeviceType
 
 # A printer supporting the TCL (Thermal Control Language) protocol
-class Tcl:
+class Tcl(DeviceType):
 	# Constructor
 	# comm = communication parameters formatted like 9600 8N1 (speed; data bits; parity; stop bits)
 	# status (optional) = Initial status (see UpdateStatus)
@@ -23,7 +23,7 @@ class Tcl:
 	def Update(self, message):
 		self.UpdateStatus(status)
 		self.UpdateMessage()
-		statusUpdate(GetLabels())
+		#statusUpdate(self.GetLabels())
 
 	# Get ready to read the new status: reset all errors.
 	def ResetErrors(self):
@@ -62,7 +62,7 @@ class Tcl:
 		self.topOfForm = False  				# Bit 4
 		self.validationDone = False 			# Bit 5 => FutureLogic only
 
-	def GetLabels():
+	def GetLabels(self):
 		return {"Message":self.message, "Com":self.comm, "Status":self.status}
 
 	# Updates the printer status
@@ -209,148 +209,3 @@ class Tcl:
 
 	def DecodeVersion(self, fversion):
 		self.fversion = fversion
-
-#################################
-# Unit tests
-#################################
-if __name__ == '__main__':
-
-	myFiles = RunningDisplay()
-
-	test_speed = "9600"
-	test_data = "8"
-	test_parity = "N"
-	test_stop = "1"
-	test_comm = test_speed + " " + test_data + test_parity + test_stop
-	printer = Tcl(test_comm)
-	if printer.comm.get() != test_comm:
-		print("Error: wrong communication data; expected '" + test_comm + "'; actual '" + printer.comm.get() + "'")
-
-	############################
-	def TestStatus(flags, expectedMessage, lastTemplate):
-		printer.UpdateStatus(test_status)
-		printer.UpdateMessage()
-		if printer.byte0 != ord(flags[0:1]):
-			print("Error splitting: should have ord('" + flags[0:1] + "') = 0x40 as byte 0 for " + flags)
-		if printer.byte1 != ord(flags[2:3]):
-			print("Error splitting: should have ord('" + flags[2:3] + "') = 0x40 as byte 1 for " + flags)
-		if printer.byte2 != ord(flags[4:5]):
-			print("Error splitting: should have ord('" + flags[4:5] + "') = 0x40 as byte 2 for " + flags)
-		if printer.byte3 != ord(flags[6:7]):
-			print("Error splitting: should have ord('" + flags[6:7] + "') = 0x40 as byte 3 for " + flags)
-		if printer.byte4 != ord(flags[8:9]):
-			print("Error splitting: should have ord('" + flags[8:9] + "') = 0x41 as byte 4 for " + flags)
-		if printer.lastTemplate != "x":
-			print("Error: Didn't detect last template from Px; found '" + printer.lastTemplate + "'")
-		if printer.message.get() != expectedMessage:
-			print("Error: Wrong message for " + flags + ": found '" + printer.message.get() + "'; expected '" + expectedMessage + "'")
-		return
-
-
-
-	test_flags = "P|@|@|@|A"
-	test_status = "*S|0|GURUSAG18|" + test_flags + "|Px|*"
-	TestStatus(test_flags, "Generic error", "x")
-	expectedMessage = "Generic error"
-	printer.UpdateStatus(test_status)
-	printer.UpdateMessage()
-	if printer.status != test_status:
-		print("Error: wrong status; expected '" + test_status + "'; actual '" + printer.status)
-	if not printer.error:
-		print("Error: should have found an error for |P|@|@|@|A|")
-	if not printer.powerUp:
-		print("Error: should have detected Power Up for |P|@|@|@|A|")
-	if printer.byte0 != ord("P"):
-		print("Error splitting: should have ord('P') = 0x40 as byte 0 for |P|@|@|@|A|")
-	if printer.byte1 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 1 for |P|@|@|@|A|")
-	if printer.byte2 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 2 for |P|@|@|@|A|")
-	if printer.byte3 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 3 for |P|@|@|@|A|")
-	if printer.byte4 != ord("A"):
-		print("Error splitting: should have ord('A') = 0x41 as byte 4 for |P|@|@|@|A|")
-	if printer.lastTemplate != "x":
-		print("Error: Didn't detect last template from Px; found '" + printer.lastTemplate + "'")
-	if printer.message.get() != expectedMessage:
-		print("Error: Wrong message for |P|@|@|@|A|: found '" + printer.message.get() + "'; expected '" + expectedMessage + "'")
-
-	#----------------
-	test_noError = "*S|0|GURUSAG18|@|@|@|@|@|P#8000|*"
-	expectedMessage = "Ready to print, no previous errors"
-	printer.UpdateStatus(test_noError)
-	printer.UpdateMessage()
-	if printer.error:
-		print("Error: should not have found an error for |@|@|@|@|@|")
-	if printer.byte0 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 0 for |@|@|@|@|@|")
-	if printer.byte1 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 1 for |@|@|@|@|@|")
-	if printer.byte2 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 2 for |@|@|@|@|@|")
-	if printer.byte3 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 3 for |@|@|@|@|@|")
-	if printer.byte4 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 4 for |@|@|@|@|@|")
-	if printer.lastTemplate != "#8000":
-		print("Error: Didn't detect last template from P#8000; found '" + printer.lastTemplate + "'")
-	if printer.message.get() != expectedMessage:
-		print("Error: Wrong message for |@|@|@|@|@|: found '" + printer.message.get() + "'; expected '" + expectedMessage + "'")
-
-	test_previousBatchError = "*S|0|GURUSAG18|P|P|@|@|@|P0|*"
-	expectedMessage = "Ready to print, a previous error (unknown library)"
-	printer.UpdateStatus(test_previousBatchError)
-	printer.UpdateMessage()
-	if not printer.error:
-		print("Error: should have found an error for |P|P|@|@|@|")
-	if not printer.error:
-		print("Error: should have found an error for |P|P|@|@|@|")
-	if not printer.systemError:
-		print("Error: should have detected System Error for |P|P|@|@|@|")
-	if not printer.libraryRefError:
-		print("Error: should have detected Library Reference Error for |P|P|@|@|@|")
-	if printer.byte0 != ord("P"):
-		print("Error splitting: should have ord('P') = 0x50 as byte 0 for |P|P|@|@|@|")
-	if printer.byte1 != ord("P"):
-		print("Error splitting: should have ord('P') = 0x50 as byte 1 for |P|P|@|@|@|")
-	if printer.byte2 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 2 for |P|P|@|@|@|")
-	if printer.byte3 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 3 for |P|P|@|@|@|")
-	if printer.byte4 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 4 for |P|P|@|@|@|")
-	if printer.lastTemplate != "0":
-		print("Error: Didn't detect last template from P0; found '" + printer.lastTemplate + "'")
-	if printer.message.get() != expectedMessage:
-		print("Error: Wrong message for |P|P|@|@|@|: found '" + printer.message.get() + "'; expected '" + expectedMessage + "'")
-
-	test_memoryOverflow = "*S|0|GURUSAG18|P|F|@|@|@|P0|*"
-	expectedMessage = "Memory overflow"
-	printer.UpdateStatus(test_memoryOverflow)
-	printer.UpdateMessage()
-	if not printer.error:
-		print("Error: should have found an error for |P|F|@|@|@|")
-	if not printer.systemError:
-		print("Error: should have detected System Error for |P|F|@|@|@|")
-	if not printer.bufferOverflow:
-		print("Error: should have detected Buffer Overflow for |P|F|@|@|@|")
-	if not printer.libraryLoadError:
-		print("Error: should have detected Library Load Error for |P|F|@|@|@|")
-	if printer.byte0 != ord("P"):
-		print("Error splitting: should have ord('P') = 0x50 as byte 0 for |P|F|@|@|@|")
-	if printer.byte1 != ord("F"):
-		print("Error splitting: should have ord('F') = 0x46 as byte 1 for |P|F|@|@|@|")
-	if printer.byte2 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 2 for |P|F|@|@|@|")
-	if printer.byte3 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 3 for |P|F|@|@|@|")
-	if printer.byte4 != ord("@"):
-		print("Error splitting: should have ord('@') = 0x40 as byte 4 for |P|F|@|@|@|")
-	if printer.lastTemplate != "0":
-		print("Error: Didn't detect last template from P0; found '" + printer.lastTemplate + "'")
-	if printer.message.get() != expectedMessage:
-		print("Error: Wrong message for |P|F|@|@|@|: found '" + printer.message.get() + "'; expected '" + expectedMessage + "'")
-
-	print("End of test")
-
-

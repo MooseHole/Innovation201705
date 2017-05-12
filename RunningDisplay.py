@@ -5,6 +5,7 @@ from DeviceInterface import DeviceType
 class RunningDisplay():
     def __init__(self):
         self.win = Tk()
+        self.running = True
     @staticmethod
     def __addLabel(frame, lab, text, index):
         Label(frame, text=lab).grid(row=index, column=0, sticky=W)
@@ -25,6 +26,7 @@ class RunningDisplay():
         self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=W)
         self.win.protocol("WM_DELETE_WINDOW", self.onClose)
     def onClose(self):
+        self.running = False
         self.win.destroy()
     def UpdateRXStatus(self, isConnected):
         if isConnected:
@@ -37,5 +39,6 @@ class RunningDisplay():
         else:
             self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=W)
     def runLoop(self):
-        self.win.update_idletasks()
-        self.win.update()
+        if self.running:
+            self.win.update_idletasks()
+            self.win.update()
