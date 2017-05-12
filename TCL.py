@@ -28,8 +28,7 @@ class Tcl(DeviceType):
 		#statusUpdate(self.GetLabels())
 
 	def GetLabels(self):
-		return
-		{
+		return {
 			"Model": self.model,
 			"Firmware": self.fversion,
 			"Com": self.comm,
