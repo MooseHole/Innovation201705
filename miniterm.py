@@ -18,12 +18,6 @@ from serial.tools import hexlify_codec
 from TCL import Tcl as PrinterTcl
 from RunningDisplay import *
 
-guiobject = RunningDisplay()
-
-tclobject = PrinterTcl("9600 8N1")
-guiobject.SetDevice(tclobject)
-
-
 # pylint: disable=wrong-import-order,wrong-import-position
 
 codecs.register(lambda c: hexlify_codec.getregentry() if c == 'hexlify' else None)
@@ -870,7 +864,6 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
                 if not args.port:
                     parser.error('port is not given')
         try:
-            guiobject.runLoop()
             serial_instance = serial.serial_for_url(
                 args.port,
                 args.baudrate,
@@ -904,6 +897,11 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
         else:
             break
 
+    guiobject = RunningDisplay()
+    tclobject = PrinterTcl(str(serial_instance.baudrate) + " " + str(serial_instance.bytesize) + serial_instance.parity + str(serial_instance.stopbits))
+    guiobject.SetDevice(tclobject)
+    guiobject.runLoop()
+	
     miniterm = Miniterm(
         serial_instance,
         echo=args.echo,
