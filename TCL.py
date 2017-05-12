@@ -27,7 +27,7 @@ class Tcl(DeviceType):
 		self.UpdateMessage()
 		#statusUpdate(self.GetLabels())
 
-	def GetLabels():
+	def GetLabels(self):
 		return
 		{
 			"Model": self.model,
