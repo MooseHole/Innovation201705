@@ -181,12 +181,12 @@ class Transform(object):
         """text received from serial port"""
         if text[:2] == 'E:':
             """ EGM input """
-            Update(text[2:])
+            # Update(text[2:])
         elif text[:2] == 'P:':
             """ Peripheral input """
             Update(text[2:])
 
-        return 'UNKNOWN INPUT ' + text
+        return text
 
     def tx(self, text):
         """text to be sent to serial port"""
