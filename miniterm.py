@@ -178,13 +178,13 @@ class Transform(object):
     """do-nothing: forward all data unchanged"""
     def rx(self, text):
         """text received from serial port"""
-	if text[:2] == 'E:':
-		""" EGM input """
-		return text[2:]
-	elif text[:2] == 'P:':
-		""" Peripheral input """
-		return text[2:]
-        return 'UNKNOWN INPUT ' + text
+        if text[:2] == 'E:':
+            """ EGM input """
+            return text[2:]
+        elif text[:2] == 'P:':
+            """ Peripheral input """
+            return text[2:]
+            return 'UNKNOWN INPUT ' + text
 
     def tx(self, text):
         """text to be sent to serial port"""
