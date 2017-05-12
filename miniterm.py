@@ -403,9 +403,9 @@ class Miniterm(object):
         try:
             while self.alive:
                 if time.time() - lastTXReset > 15:
-                    guiobject.UpdateTXStatus(False)
+                    object.guiobject.UpdateTXStatus(False)
                 if time.time() - lastRXReset > 15:
-                    guiobject.UpdateRXStatus(False)
+                    object.guiobject.UpdateRXStatus(False)
         except:
             self.alive = False
             raise
