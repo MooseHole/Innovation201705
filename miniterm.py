@@ -182,10 +182,11 @@ class Transform(object):
         """text received from serial port"""
         if text[:2] == 'E:':
             """ EGM input """
-            tclobject.Update(text[2:])
+            guiobject.UpdateRXStatus(True)
         elif text[:2] == 'P:':
             """ Peripheral input """
             tclobject.Update(text[2:])
+            guiobject.UpdateTXStatus(True)
 
         return text
 
@@ -458,7 +459,8 @@ class Miniterm(object):
                     else:
                         text = self.rx_decoder.decode(data)
                         for transformation in self.rx_transformations:
-                            text = transformation.rx(text)
+                            text = transformation.rx(text, tclobject, guiobject)
+
                         self.console.write(text)
         except serial.SerialException:
             self.alive = False
