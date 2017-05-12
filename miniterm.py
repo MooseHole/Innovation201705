@@ -15,6 +15,7 @@ import threading
 import serial
 from serial.tools.list_ports import comports
 from serial.tools import hexlify_codec
+from TCL.tcl import Update
 
 # pylint: disable=wrong-import-order,wrong-import-position
 
@@ -180,11 +181,12 @@ class Transform(object):
         """text received from serial port"""
         if text[:2] == 'E:':
             """ EGM input """
-            return text[2:]
+            Update(text[2:])
         elif text[:2] == 'P:':
             """ Peripheral input """
-            return text[2:]
-            return 'UNKNOWN INPUT ' + text
+            Update(text[2:])
+
+        return 'UNKNOWN INPUT ' + text
 
     def tx(self, text):
         """text to be sent to serial port"""

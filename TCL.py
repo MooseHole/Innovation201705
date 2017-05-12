@@ -1,3 +1,5 @@
+from testGui import statusUpdate
+
 # A printer supporting the TCL (Thermal Control Language) protocol
 class Tcl:
 	# Constructor
@@ -15,6 +17,11 @@ class Tcl:
 		if status != "":
 			self.UpdateStatus(status)
 			self.UpdateMessage()
+			
+	def Update(self, message)
+		self.UpdateStatus(message)
+		self.UpdateMessage()
+		statusUpdate(GetLabels())
 
 	# Get ready to read the new status: reset all errors.
 	def ResetErrors(self):

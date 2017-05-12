@@ -13,7 +13,9 @@ props = {"PrinterType": StringVar(value="Unknown"),
          "Status": StringVar(value="Unknown")}
 
 def randStatusUpdate(oldepoch):
-    return time.time() - oldepoch >= 10
+    return false
+
+"""    return time.time() - oldepoch >= 10 """
 
 p = DynamicDevice(props)
 myFiles.SetDevice(p)
@@ -22,15 +24,20 @@ lastTime = time.time()
 lastRX = False
 lastTX = False
 
+def statusUpdate(data)
+    for item in data:
+        props[item] = data[item]
+
 while TRUE:
     myFiles.runLoop()
-
+	
     if randStatusUpdate(lastTime):
         lastTime = time.time()
         myFiles.UpdateRXStatus(~lastRX)
         lastRX = ~lastRX
         myFiles.UpdateTXStatus(~lastTX)
         lastTX = ~lastTX
+		
         if lastTX:
             p.Status.set("OK")
             p.PrinterType.set("New Type")
