@@ -11,6 +11,7 @@ import codecs
 import os
 import sys
 import threading
+import time
 
 import serial
 from serial.tools.list_ports import comports
@@ -183,10 +184,12 @@ class Transform(object):
         if text[:2] == 'E:':
             """ EGM input """
             guiobject.UpdateRXStatus(True)
+            lastRXReset = time.time()
         elif text[:2] == 'P:':
             """ Peripheral input """
             tclobject.Update(text[2:])
             guiobject.UpdateTXStatus(True)
+            lastTXReset = time.time()
 
         return text
 
@@ -340,7 +343,6 @@ def ask_for_port():
             port = ports[index]
         return port
 
-
 class Miniterm(object):
     """\
     Terminal application. Copy data from serial port to console and vice versa.
@@ -390,6 +392,24 @@ class Miniterm(object):
         self.transmitter_thread.start()
         self.console.setup()        
 
+        self.watchdog_thread = threading.Thread(target=self.watchdog, name='tx')
+        self.watchdog_thread.daemon = True
+        self.watchdog_thread.start()
+
+    def watchdog(self):
+        startTime = time.time()
+        lastTXReset = startTime - 15;
+        lastRXReset = startTime - 15;
+        try:
+            while self.alive:
+                if time.time() - lastTXReset > 15:
+                    guiobject.UpdateTXStatus(False)
+                if time.time() - lastRXReset > 15:
+                    guiobject.UpdateRXStatus(False)
+        except:
+            self.alive = False
+            raise
+		
     def stop(self):
         """set flag to stop worker threads"""
         self.alive = False
@@ -397,6 +417,7 @@ class Miniterm(object):
     def join(self, transmit_only=False):
         """wait for worker threads to terminate"""
         self.transmitter_thread.join()
+        self.watchdog_thread.join()
         if not transmit_only:
             if hasattr(self.serial, 'cancel_read'):
                 self.serial.cancel_read()
