@@ -74,9 +74,6 @@ class Tcl(DeviceType):
 		self.topOfForm = False  				# Bit 4
 		self.validationDone = False 			# Bit 5 => FutureLogic only
 
-	def GetLabels(self):
-		return {"Message":self.message, "Com":self.comm, "Status":self.status}
-
 	# Updates the printer status
 	# status = the status received from the printer formatted like "*S|0|GURUSAG18|@|@|@|@|A|Px|*"
 	#	There are 9 fields separated by '|'; the entire message is delimited by '*':
