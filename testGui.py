@@ -13,7 +13,7 @@ props = {"PrinterType": StringVar(value="Unknown"),
          "Status": StringVar(value="Unknown")}
 
 def randStatusUpdate(oldepoch):
-    return false
+    return False
 
 """    return time.time() - oldepoch >= 10 """
 
@@ -24,7 +24,7 @@ lastTime = time.time()
 lastRX = False
 lastTX = False
 
-def statusUpdate(data)
+def statusUpdate(data):
     for item in data:
         props[item] = data[item]
 
