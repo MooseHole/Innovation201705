@@ -1,4 +1,5 @@
 from tkinter import *
+import tkinter.font as tkFont
 
 import queue
 from DeviceInterface import DeviceType
@@ -11,26 +12,35 @@ class RunningDisplay():
         self.rxQueue = queue.Queue()
         self.txQueue = queue.Queue()
         self.win = Tk()
+        self.win.attributes("-fullscreen", True)
+        self.cusFont = tkFont.Font(family="Helvetica", size=40)
         self.running = True
     def __addLabel(self, frame, lab, text, index):
-        Label(frame, text=lab).grid(row=index, column=0, sticky=W)
+        Label(frame, text=lab, font=self.cusFont).grid(row=index, column=0, sticky=N+S+E+W)
         self.items[lab] = StringVar(value=text)
-        name = Entry(frame, textvariable=self.items[lab], state='readonly')
-        name.grid(row=index, column=1, sticky=W)
+        name = Entry(frame, textvariable=self.items[lab], state='readonly', font=self.cusFont)
+        name.grid(row=index, column=1, sticky=N+S+E+W)
+        Grid.columnconfigure(frame, 0, weight=1)
+        Grid.columnconfigure(frame, 1, weight=1)
+        Grid.rowconfigure(frame, index, weight=1)
         return index + 1
     def SetDevice(self, device):
         self.__frame1 = Frame(self.win)
-        self.__frame1.pack()
+        self.__frame1.pack(side="top", fill="both", expand=True)
         curIndex = 0
         self.device = device
         for lab, text in device.GetLabels().items():
             curIndex = self.__addLabel(self.__frame1, lab, text, curIndex)
         self.__rxCol = curIndex
         self.__txCol = curIndex + 1
-        Label(self.__frame1, text="RX").grid(row=self.__rxCol, column=0, sticky=W)
-        self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=W)
-        Label(self.__frame1, text="TX").grid(row=self.__txCol, column=0, sticky=W)
-        self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=W)
+        Grid.columnconfigure(self.__frame1, 0, weight=1)
+        Grid.columnconfigure(self.__frame1, 1, weight=1)
+        Grid.rowconfigure(self.__frame1, self.__txCol, weight=1)
+        Grid.rowconfigure(self.__frame1, self.__rxCol, weight=1)
+        Label(self.__frame1, text="RX", font=self.cusFont).grid(row=self.__rxCol, column=0, sticky=N+S+E+W)
+        self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
+        Label(self.__frame1, text="TX", font=self.cusFont).grid(row=self.__txCol, column=0, sticky=N+S+E+W)
+        self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=N+S+E+W)
         self.win.protocol("WM_DELETE_WINDOW", self.onClose)
     def onClose(self):
         self.running = False
@@ -54,14 +64,14 @@ class RunningDisplay():
             self.items[lab].set(text)
     def __UpdateButtonTX(self, isConnected):
         if isConnected:
-            self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="green").grid(row=self.__txCol, column=1, sticky=W)
+            self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="green").grid(row=self.__txCol, column=1, sticky=N+S+E+W)
         else:
-            self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=W)
+            self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=N+S+E+W)
     def __UpdateButtonRX(self, isConnected):
         if isConnected:
-            self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="green").grid(row=self.__rxCol, column=1, sticky=W)
+            self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="green").grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
         else:
-            self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=W)
+            self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
     def runLoop(self):
         if self.running:
             #while not self.txQueue.empty():
