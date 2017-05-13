@@ -40,13 +40,15 @@ class RunningDisplay():
             return
 
         self.RXisConnected = isConnected
-        self.rxQueue.put(isConnected)
+        #self.__UpdateButtonRX(isConnected)
+        #self.rxQueue.put(isConnected)
     def UpdateTXStatus(self, isConnected):
         if self.TXisConnected == isConnected:
             return
 
         self.isConnected = isConnected
-        self.txQueue.put(isConnected)
+        #self.__UpdateButtonTX(isConnected)
+        #self.txQueue.put(isConnected)
     def __handleGUIRefresh(self):
         for lab, text in self.device.GetLabels().items():
             self.items[lab].set(text)
@@ -62,10 +64,10 @@ class RunningDisplay():
             self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=W)
     def runLoop(self):
         if self.running:
-            while not self.txQueue.empty():
-                self.__UpdateButtonTX(self.txQueue.get())
-            while not self.rxQueue.empty():
-                self.__UpdateButtonRX(self.rxQueue.get())
+            #while not self.txQueue.empty():
+            #    self.__UpdateButtonTX(self.txQueue.get())
+            #while not self.rxQueue.empty():
+            #    self.__UpdateButtonRX(self.rxQueue.get())
             self.__handleGUIRefresh()
             self.win.update_idletasks()
             self.win.update()

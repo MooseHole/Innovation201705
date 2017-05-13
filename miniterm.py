@@ -364,6 +364,8 @@ class Miniterm(object):
         self.lastTXReset = self.startTime - 15
         self.lastRXReset = self.startTime - 15
         self.dataList = queue.Queue()
+        self.messageBuffer = ""
+        self.tclMessage = ""
 
     def _start_reader(self):
         """Start reader thread"""
@@ -372,10 +374,22 @@ class Miniterm(object):
         self.receiver_thread = threading.Thread(target=self.reader, name='rx')
         self.receiver_thread.daemon = True
         self.receiver_thread.start()
-		
+
         self.decoder_thread = threading.Thread(target=self.decoder, name='deco')
         self.decoder_thread.daemon = True
         self.decoder_thread.start()
+
+        self.tcler_thread = threading.Thread(target=self.tcler, name='tclt')
+        self.tcler_thread.daemon = True
+        self.tcler_thread.start()
+
+        self.gui_thread = threading.Thread(target=self.gui, name='guit')
+        self.gui_thread.daemon = True
+        self.gui_thread.start()
+
+        self.watchdog_thread = threading.Thread(target=self.watchdog, name='dog')
+        self.watchdog_thread.daemon = True
+        self.watchdog_thread.start()
 
     def _stop_reader(self):
         """Stop reader thread only, wait for clean exit of thread"""
@@ -384,6 +398,9 @@ class Miniterm(object):
             self.serial.cancel_read()
         self.receiver_thread.join()
         self.decoder_thread.join()
+        self.tcler_thread.join()
+        self.gui_thread.join()
+        self.watchdog_thread.join()
 
     def start(self):
         """start worker threads"""
@@ -394,10 +411,6 @@ class Miniterm(object):
         #self.transmitter_thread.daemon = True
         #self.transmitter_thread.start()
         #self.console.setup()        
-
-        #self.watchdog_thread = threading.Thread(target=self.watchdog, name='tx')
-        #self.watchdog_thread.daemon = True
-        #self.watchdog_thread.start()
 
     def watchdog(self):
         try:
@@ -418,12 +431,26 @@ class Miniterm(object):
     def join(self, transmit_only=False):
         """wait for worker threads to terminate"""
         #self.transmitter_thread.join()
-        #self.watchdog_thread.join()
+        self.watchdog_thread.join()
         if not transmit_only:
             if hasattr(self.serial, 'cancel_read'):
                 self.serial.cancel_read()
             self.receiver_thread.join()
             self.decoder_thread.join()
+            self.tcler_thread.join()
+            self.gui_thread.join()
+            self.watchdog_thread.join()
+
+    def gui(self):
+        try:
+            while self.alive and self.guiobject.running:
+                if self.tclMessage != "":
+                    self.tclobject.Update(self.tclMessage)
+                    self.tclMessage = ""
+                self.guiobject.runLoop()
+        except:
+            self.alive = False
+            raise
 
     def close(self):
         self.serial.close()
@@ -473,10 +500,7 @@ class Miniterm(object):
     def reader(self):
         """loop and copy serial->console"""
         try:
-            self.tclobject.Update("*S|0|GURUSAG18|@|@|@|@|A|Px|*")
-            message = ""
-            messageStarted = False
-            messageNums = []
+            #self.tclobject.Update("*S|0|GURUSAG18|@|@|@|@|A|Px|*")
             while self.alive and self._reader_alive:
                 # read all that is there or wait for one byte
                 data = self.serial.read(self.serial.in_waiting or 1)
@@ -489,10 +513,6 @@ class Miniterm(object):
     def decoder(self):
         """loop and copy serial->console"""
         try:
-            self.tclobject.Update("*S|0|GURUSAG18|@|@|@|@|A|Px|*")
-            message = ""
-            messageStarted = False
-            messageNums = []
             while self.alive and self._reader_alive:
                 # read all that is there or wait for one byte
 
@@ -500,9 +520,10 @@ class Miniterm(object):
                     text = self.rx_decoder.decode(self.dataList.get())
                     for transformation in self.rx_transformations:
                         text = transformation.rx(text)
-
                         for tex in text.splitlines():
-                            if tex[:2] == 'E:':
+                            if len(tex) < 3:
+                                pass
+                            elif tex[:2] == 'E:':
                                 """ EGM input """
                                 self.guiobject.UpdateRXStatus(True)
                                 lastRXReset = time.time()
@@ -510,20 +531,9 @@ class Miniterm(object):
                             elif tex[:2] == 'P:' and len(text[2:]) > 0:
                                 """ Peripheral input """
                                 try:
-                                    messageNums.append(tex[2:])
                                     charDecimal = int(tex[2:])
-                                    #chara = str(unichr(charDecimal))
                                     chara = chr(charDecimal)
-                                    if chara == '*':
-                                        messageStarted = not messageStarted
-                                    #self.console.write(chara)
-                                    message += chara
-                                    if not messageStarted and chara == '*':
-                                        # self.console.write("GOT " + message)
-                                        self.tclobject.Update(message)
-                                        #self.tclobject.Update("*S|0|3RUSAGE05|@|@|@|@|A|Px|*")
-                                        message = ""
-                                        messageNums = []
+                                    self.messageBuffer += chara
                                     self.guiobject.UpdateTXStatus(True)
                                     lastTXReset = time.time()
                                 except ValueError:
@@ -531,11 +541,27 @@ class Miniterm(object):
                                     pass
 
                     #self.console.write(text)
-                    #print (messageNums)
         except serial.SerialException:
             self.alive = False
             self.console.cancel()
             raise       # XXX handle instead of re-raise?
+
+    def tcler(self):
+        """loop and copy serial->console"""
+        beginTag = "*S|"
+        endTag = "|*"
+
+        while self.alive and self._reader_alive:
+            time.sleep(2)
+            beginAt = self.messageBuffer.find(beginTag)
+            if beginAt >= 0:
+                endAt = self.messageBuffer[(beginAt+len(beginTag)):].find(endTag)
+                if endAt >= 0:
+                    #self.tclObject.Update(self.messageBuffer[beginAt:endAt+len(endTag)])
+                    self.tclMessage = self.messageBuffer[beginAt:(endAt+len(endTag)+3)]
+                    print (self.tclMessage)
+                    self.messageBuffer = ""
+
 
     def writer(self):
         """\
@@ -992,6 +1018,10 @@ def main(default_port=None, default_baudrate=115200, default_rts=None, default_d
 
     miniterm.start()
     try:
+        #while guiobject.running:
+        #    miniterm.watchdog()
+        #    guiobject.runLoop()
+        #miniterm.alive = False
         miniterm.join(True)
     except KeyboardInterrupt:
         pass
