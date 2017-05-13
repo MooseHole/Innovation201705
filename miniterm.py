@@ -363,7 +363,7 @@ class Miniterm(object):
         self.startTime = time.time()
         self.lastTXReset = self.startTime - 15
         self.lastRXReset = self.startTime - 15
-
+        self.dataList = queue.Queue()
 
     def _start_reader(self):
         """Start reader thread"""
@@ -372,6 +372,10 @@ class Miniterm(object):
         self.receiver_thread = threading.Thread(target=self.reader, name='rx')
         self.receiver_thread.daemon = True
         self.receiver_thread.start()
+		
+        self.decoder_thread = threading.Thread(target=self.decoder, name='deco')
+        self.decoder_thread.daemon = True
+        self.decoder_thread.start()
 
     def _stop_reader(self):
         """Stop reader thread only, wait for clean exit of thread"""
@@ -379,20 +383,21 @@ class Miniterm(object):
         if hasattr(self.serial, 'cancel_read'):
             self.serial.cancel_read()
         self.receiver_thread.join()
+        self.decoder_thread.join()
 
     def start(self):
         """start worker threads"""
         self.alive = True
         self._start_reader()
         # enter console->serial loop
-        self.transmitter_thread = threading.Thread(target=self.writer, name='tx')
-        self.transmitter_thread.daemon = True
-        self.transmitter_thread.start()
-        self.console.setup()        
+        #self.transmitter_thread = threading.Thread(target=self.writer, name='tx')
+        #self.transmitter_thread.daemon = True
+        #self.transmitter_thread.start()
+        #self.console.setup()        
 
-        self.watchdog_thread = threading.Thread(target=self.watchdog, name='tx')
-        self.watchdog_thread.daemon = True
-        self.watchdog_thread.start()
+        #self.watchdog_thread = threading.Thread(target=self.watchdog, name='tx')
+        #self.watchdog_thread.daemon = True
+        #self.watchdog_thread.start()
 
     def watchdog(self):
         try:
@@ -412,12 +417,13 @@ class Miniterm(object):
 
     def join(self, transmit_only=False):
         """wait for worker threads to terminate"""
-        self.transmitter_thread.join()
-        self.watchdog_thread.join()
+        #self.transmitter_thread.join()
+        #self.watchdog_thread.join()
         if not transmit_only:
             if hasattr(self.serial, 'cancel_read'):
                 self.serial.cancel_read()
             self.receiver_thread.join()
+            self.decoder_thread.join()
 
     def close(self):
         self.serial.close()
@@ -470,47 +476,62 @@ class Miniterm(object):
             self.tclobject.Update("*S|0|GURUSAG18|@|@|@|@|A|Px|*")
             message = ""
             messageStarted = False
+            messageNums = []
             while self.alive and self._reader_alive:
                 # read all that is there or wait for one byte
                 data = self.serial.read(self.serial.in_waiting or 1)
-                if data:
-                    if self.raw:
-                        self.console.write_bytes("123456790" + data)
-                    else:
-                        text = self.rx_decoder.decode(data)
-                        for transformation in self.rx_transformations:
-                            text = transformation.rx(text)
+                self.dataList.put(data)
+        except serial.SerialException:
+            self.alive = False
+            self.console.cancel()
+            raise       # XXX handle instead of re-raise?
 
-                            for tex in text.splitlines():
-                                if tex[:2] == 'E:':
-                                    """ EGM input """
-                                    self.guiobject.UpdateRXStatus(True)
-                                    lastRXReset = time.time()
-                                    self.console.write("GOT E")
-                                elif tex[:2] == 'P:' and len(text[2:]) > 0:
-                                    """ Peripheral input """
-                                    try: 
-                                        charDecimal = int(tex[2:])
-                                        chara = str(unichr(charDecimal))
-                                        if chara == 'S' and not messageStarted:
-                                            messageStarted = True
-                                            message = "*"
-                                        elif chara == '*':
-                                            messageStarted = False
-                                        message += chara
-                                        if not messageStarted and chara == '*':
-                                            if chara == '*':
-                                                # self.console.write("GOT " + message)
-                                                #self.tclobject.Update(message)
-                                                self.tclobject.Update("*S|0|3RUSAGE05|@|@|@|@|A|Px|*")
-                                            message = ""
-                                        self.guiobject.UpdateTXStatus(True)
-                                        lastTXReset = time.time()
-                                    except ValueError:
-                                        self.console.write(".")
-                                        pass
+    def decoder(self):
+        """loop and copy serial->console"""
+        try:
+            self.tclobject.Update("*S|0|GURUSAG18|@|@|@|@|A|Px|*")
+            message = ""
+            messageStarted = False
+            messageNums = []
+            while self.alive and self._reader_alive:
+                # read all that is there or wait for one byte
 
-                        self.console.write(text)
+                if not self.dataList.empty():
+                    text = self.rx_decoder.decode(self.dataList.get())
+                    for transformation in self.rx_transformations:
+                        text = transformation.rx(text)
+
+                        for tex in text.splitlines():
+                            if tex[:2] == 'E:':
+                                """ EGM input """
+                                self.guiobject.UpdateRXStatus(True)
+                                lastRXReset = time.time()
+                                self.console.write("GOT E")
+                            elif tex[:2] == 'P:' and len(text[2:]) > 0:
+                                """ Peripheral input """
+                                try:
+                                    messageNums.append(tex[2:])
+                                    charDecimal = int(tex[2:])
+                                    #chara = str(unichr(charDecimal))
+                                    chara = chr(charDecimal)
+                                    if chara == '*':
+                                        messageStarted = not messageStarted
+                                    #self.console.write(chara)
+                                    message += chara
+                                    if not messageStarted and chara == '*':
+                                        # self.console.write("GOT " + message)
+                                        self.tclobject.Update(message)
+                                        #self.tclobject.Update("*S|0|3RUSAGE05|@|@|@|@|A|Px|*")
+                                        message = ""
+                                        messageNums = []
+                                    self.guiobject.UpdateTXStatus(True)
+                                    lastTXReset = time.time()
+                                except ValueError:
+                                    self.console.write(".")
+                                    pass
+
+                    #self.console.write(text)
+                    #print (messageNums)
         except serial.SerialException:
             self.alive = False
             self.console.cancel()
@@ -551,8 +572,9 @@ class Miniterm(object):
                             echo_text = transformation.echo(echo_text)
                         self.console.write(echo_text)
         except:
-            self.alive = False
-            raise
+            #self.alive = False
+            #raise
+            pass
 
     def handle_menu_key(self, c):
         """Implement a simple menu / settings"""

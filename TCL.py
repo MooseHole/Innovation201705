@@ -8,13 +8,13 @@ class Tcl(DeviceType):
 	# comm = communication parameters formatted like 9600 8N1 (speed; data bits; parity; stop bits)
 	# status (optional) = Initial status (see UpdateStatus)
 	def __init__(self, comm, status=""):
-		self.comm = StringVar(value = comm)
-		self.status = StringVar(value = status)
-		self.fversion = StringVar(value = "")
-		self.lastTemplate = StringVar(value = "")
-		self.message = StringVar(value = "")
-		self.model = StringVar(value = "")
-		self.revision = StringVar(value = "")
+		self.comm = comm
+		self.status = status
+		self.fversion = ""
+		self.lastTemplate = ""
+		self.message = ""
+		self.model = ""
+		self.revision = ""
 
 		self.ResetErrors()
 
@@ -23,7 +23,7 @@ class Tcl(DeviceType):
 			self.UpdateMessage()
 
 	def Update(self, message):
-		print ("TCL::Update(" + message + ")")
+		print ("Update(\"" + message + "\")");
 		self.UpdateStatus(message)
 		self.UpdateMessage()
 		#statusUpdate(self.GetLabels())
@@ -184,37 +184,37 @@ class Tcl(DeviceType):
 	def UpdateMessage(self):
 		if self.systemError:
 			if self.libraryRefError:
-				self.message.set("Ready to print, a previous error (unknown library)")
+				self.message = "Ready to print, a previous error (unknown library)"
 			elif self.drawerOpen:
-				self.message.set("Print head is up")
+				self.message = "Print head is up"
 			elif self.paperOut:
-				self.message.set("Paper is out")
+				self.message = "Paper is out"
 			elif self.prDataError:
-				self.message.set("Improper batch data in one of the Print Regions")
+				self.message = "Improper batch data in one of the Print Regions"
 			elif self.busy and self.voltageError:
-				self.message.set("Power supply error while printing")
+				self.message = "Power supply error while printing"
 			elif self.missingSupplyIndex:
-				self.message.set("Cannot find supply index mark")
+				self.message = "Cannot find supply index mark"
 			elif self.bufferOverflow:
 				if self.libraryLoadError:
-					self.message.set("Memory overflow")
+					self.message = "Memory overflow"
 				else:
-					self.message.set("Communications buffer overflow")
+					self.message = "Communications buffer overflow"
 			elif self.prDataError:
-				self.message.set("Data within a Print Region was truncated")
+				self.message = "Data within a Print Region was truncated"
 			elif self.headError:
-				self.message.set("Bad connection with the print head")
+				self.message = "Bad connection with the print head"
 			elif self.commandError:
-				self.message.set("Garbled or unrecognized command was received")
+				self.message = "Garbled or unrecognized command was received"
 			else:
-				self.message.set("Generic error")
+				self.message = "Generic error"
 		else:
 			if self.paperInChute:
-				self.message.set("Paper in the chute")
+				self.message = "Paper in the chute"
 			elif self.busy:
-				self.message.set("Loading new font into memory")
+				self.message = "Loading new font into memory"
 			else:
-				self.message.set("Ready to print, no previous errors")
+				self.message = "Ready to print, no previous errors"
 
 
 	# Converts the "software version" into useful information.
