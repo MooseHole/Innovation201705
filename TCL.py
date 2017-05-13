@@ -23,7 +23,8 @@ class Tcl(DeviceType):
 			self.UpdateMessage()
 
 	def Update(self, message):
-		self.UpdateStatus(status)
+		print ("TCL::Update(" + message + ")")
+		self.UpdateStatus(message)
 		self.UpdateMessage()
 		#statusUpdate(self.GetLabels())
 

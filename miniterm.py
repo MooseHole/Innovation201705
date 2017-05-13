@@ -180,17 +180,6 @@ else:
 class Transform(object):
     """do-nothing: forward all data unchanged"""
     def rx(self, text):
-        """text received from serial port"""
-        if text[:2] == 'E:':
-            """ EGM input """
-            guiobject.UpdateRXStatus(True)
-            lastRXReset = time.time()
-        elif text[:2] == 'P:':
-            """ Peripheral input """
-            tclobject.Update(text[2:])
-            guiobject.UpdateTXStatus(True)
-            lastTXReset = time.time()
-
         return text
 
     def tx(self, text):
@@ -309,12 +298,13 @@ EOL_TRANSFORMATIONS = {
 }
 
 TRANSFORMATIONS = {
-    'direct': Transform,    # no transformation
-    'default': NoTerminal,
-    'nocontrol': NoControls,
-    'printable': Printable,
-    'colorize': Colorize,
-    'debug': DebugIO,
+#    'direct': Transform,    # no transformation
+#    'default': NoTerminal,
+    'default': Transform,
+#    'nocontrol': NoControls,
+#    'printable': Printable,
+#    'colorize': Colorize,
+#    'debug': DebugIO,
 }
 
 
@@ -366,6 +356,14 @@ class Miniterm(object):
         self.receiver_thread = None
         self.rx_decoder = None
         self.tx_decoder = None
+        self.guiobject = RunningDisplay()
+        self.tclobject = PrinterTcl(str(serial_instance.baudrate) + " " + str(serial_instance.bytesize) + serial_instance.parity + str(serial_instance.stopbits))
+        self.guiobject.SetDevice(self.tclobject)
+        self.guiobject.runLoop()
+        self.startTime = time.time()
+        self.lastTXReset = self.startTime - 15
+        self.lastRXReset = self.startTime - 15
+
 
     def _start_reader(self):
         """Start reader thread"""
@@ -397,19 +395,17 @@ class Miniterm(object):
         self.watchdog_thread.start()
 
     def watchdog(self):
-        startTime = time.time()
-        lastTXReset = startTime - 15;
-        lastRXReset = startTime - 15;
         try:
             while self.alive:
-                if time.time() - lastTXReset > 15:
-                    object.guiobject.UpdateTXStatus(False)
-                if time.time() - lastRXReset > 15:
-                    object.guiobject.UpdateRXStatus(False)
+                if time.time() - self.lastTXReset > 15:
+                    self.guiobject.UpdateTXStatus(False)
+                if time.time() - self.lastRXReset > 15:
+                    self.guiobject.UpdateRXStatus(False)
+                self.lastRXReset = self.startTime - 15
         except:
             self.alive = False
             raise
-		
+        
     def stop(self):
         """set flag to stop worker threads"""
         self.alive = False
@@ -471,16 +467,48 @@ class Miniterm(object):
     def reader(self):
         """loop and copy serial->console"""
         try:
+            self.tclobject.Update("*S|0|GURUSAG18|@|@|@|@|A|Px|*")
+            message = ""
+            messageStarted = False
             while self.alive and self._reader_alive:
                 # read all that is there or wait for one byte
                 data = self.serial.read(self.serial.in_waiting or 1)
                 if data:
                     if self.raw:
-                        self.console.write_bytes(data)
+                        self.console.write_bytes("123456790" + data)
                     else:
                         text = self.rx_decoder.decode(data)
                         for transformation in self.rx_transformations:
-                            text = transformation.rx(text, tclobject, guiobject)
+                            text = transformation.rx(text)
+
+                            for tex in text.splitlines():
+                                if tex[:2] == 'E:':
+                                    """ EGM input """
+                                    self.guiobject.UpdateRXStatus(True)
+                                    lastRXReset = time.time()
+                                    self.console.write("GOT E")
+                                elif tex[:2] == 'P:' and len(text[2:]) > 0:
+                                    """ Peripheral input """
+                                    try: 
+                                        charDecimal = int(tex[2:])
+                                        chara = str(unichr(charDecimal))
+                                        if chara == 'S' and not messageStarted:
+                                            messageStarted = True
+                                            message = "*"
+                                        elif chara == '*':
+                                            messageStarted = False
+                                        message += chara
+                                        if not messageStarted and chara == '*':
+                                            if chara == '*':
+                                                # self.console.write("GOT " + message)
+                                                #self.tclobject.Update(message)
+                                                self.tclobject.Update("*S|0|3RUSAGE05|@|@|@|@|A|Px|*")
+                                            message = ""
+                                        self.guiobject.UpdateTXStatus(True)
+                                        lastTXReset = time.time()
+                                    except ValueError:
+                                        self.console.write(".")
+                                        pass
 
                         self.console.write(text)
         except serial.SerialException:
@@ -733,7 +761,7 @@ class Miniterm(object):
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 # default args can be used to override when calling main() from an other script
 # e.g to create a miniterm-my-device.py
-def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr=None):
+def main(default_port=None, default_baudrate=115200, default_rts=None, default_dtr=None):
     """Command line tool, entry point"""
 
     import argparse
@@ -920,11 +948,6 @@ def main(default_port=None, default_baudrate=9600, default_rts=None, default_dtr
         else:
             break
 
-    guiobject = RunningDisplay()
-    tclobject = PrinterTcl(str(serial_instance.baudrate) + " " + str(serial_instance.bytesize) + serial_instance.parity + str(serial_instance.stopbits))
-    guiobject.SetDevice(tclobject)
-    guiobject.runLoop()
-	
     miniterm = Miniterm(
         serial_instance,
         echo=args.echo,
