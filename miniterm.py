@@ -400,7 +400,7 @@ class Miniterm(object):
         self.receiver_thread.join()
         self.decoder_thread.join()
         self.tcler_thread.join()
-        self.gui_thread.join()
+        #self.gui_thread.join()
         self.watchdog_thread.join()
 
     def start(self):
@@ -413,9 +413,9 @@ class Miniterm(object):
         #self.transmitter_thread.start()
         #self.console.setup()        
         
-        self.gui_thread = threading.Thread(target=self.gui, name='guit')
-        self.gui_thread.daemon = True
-        self.gui_thread.start()
+        #self.gui_thread = threading.Thread(target=self.gui, name='guit')
+        #self.gui_thread.daemon = True
+        #self.gui_thread.start()
 
     def watchdog(self):
         try:
@@ -443,7 +443,7 @@ class Miniterm(object):
             self.receiver_thread.join()
             self.decoder_thread.join()
             self.tcler_thread.join()
-            self.gui_thread.join()
+            #self.gui_thread.join()
             self.watchdog_thread.join()
 
     def gui(self):
@@ -456,6 +456,8 @@ class Miniterm(object):
         except:
             self.alive = False
             raise
+
+        self.alive = False
 
     def close(self):
         self.serial.close()
@@ -1024,6 +1026,7 @@ def main(default_port=None, default_baudrate=115200, default_rts=None, default_d
 
     miniterm.start()
     try:
+        miniterm.gui()
         #while guiobject.running:
         #    miniterm.watchdog()
         #    guiobject.runLoop()
