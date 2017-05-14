@@ -552,16 +552,13 @@ class Miniterm(object):
         endTag = "|*"
 
         while self.alive and self._reader_alive:
-            time.sleep(2)
             beginAt = self.messageBuffer.find(beginTag)
             if beginAt >= 0:
                 endAt = self.messageBuffer[(beginAt+len(beginTag)):].find(endTag)
                 if endAt >= 0:
-                    #self.tclObject.Update(self.messageBuffer[beginAt:endAt+len(endTag)])
                     self.tclMessage = self.messageBuffer[beginAt:(endAt+len(endTag)+3)]
                     print (self.tclMessage)
                     self.messageBuffer = ""
-
 
     def writer(self):
         """\

@@ -38,9 +38,11 @@ class RunningDisplay():
         Grid.rowconfigure(self.__frame1, self.__txCol, weight=1)
         Grid.rowconfigure(self.__frame1, self.__rxCol, weight=1)
         Label(self.__frame1, text="RX", font=self.cusFont).grid(row=self.__rxCol, column=0, sticky=N+S+E+W)
-        self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
+        self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red")
+        self.__rxStatus.grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
         Label(self.__frame1, text="TX", font=self.cusFont).grid(row=self.__txCol, column=0, sticky=N+S+E+W)
-        self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=N+S+E+W)
+        self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red")
+        self.__txStatus.grid(row=self.__txCol, column=1, sticky=N+S+E+W)
         self.win.protocol("WM_DELETE_WINDOW", self.onClose)
     def onClose(self):
         self.running = False
@@ -51,33 +53,33 @@ class RunningDisplay():
 
         self.RXisConnected = isConnected
         #self.__UpdateButtonRX(isConnected)
-        #self.rxQueue.put(isConnected)
+        self.rxQueue.put(isConnected)
     def UpdateTXStatus(self, isConnected):
         if self.TXisConnected == isConnected:
             return
 
         self.isConnected = isConnected
         #self.__UpdateButtonTX(isConnected)
-        #self.txQueue.put(isConnected)
+        self.txQueue.put(isConnected)
     def __handleGUIRefresh(self):
         for lab, text in self.device.GetLabels().items():
             self.items[lab].set(text)
     def __UpdateButtonTX(self, isConnected):
         if isConnected:
-            self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="green").grid(row=self.__txCol, column=1, sticky=N+S+E+W)
+            self.__txStatus.configure(bg="green")
         else:
-            self.__txStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__txCol, column=1, sticky=N+S+E+W)
+            self.__txStatus.configure(bg="red")
     def __UpdateButtonRX(self, isConnected):
         if isConnected:
-            self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="green").grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
+            self.__rxStatus.configure(bg="green")
         else:
-            self.__rxStatus = Button(self.__frame1, text="       ", state=DISABLED, bg="red").grid(row=self.__rxCol, column=1, sticky=N+S+E+W)
+            self.__rxStatus.configure(bg="red")
     def runLoop(self):
         if self.running:
-            #while not self.txQueue.empty():
-            #    self.__UpdateButtonTX(self.txQueue.get())
-            #while not self.rxQueue.empty():
-            #    self.__UpdateButtonRX(self.rxQueue.get())
+            while not self.txQueue.empty():
+                self.__UpdateButtonTX(self.txQueue.get())
+            while not self.rxQueue.empty():
+                self.__UpdateButtonRX(self.rxQueue.get())
             self.__handleGUIRefresh()
             self.win.update_idletasks()
             self.win.update()
