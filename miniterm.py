@@ -394,6 +394,7 @@ class Miniterm(object):
     def _stop_reader(self):
         """Stop reader thread only, wait for clean exit of thread"""
         self._reader_alive = False
+        self.alive = False
         if hasattr(self.serial, 'cancel_read'):
             self.serial.cancel_read()
         self.receiver_thread.join()
@@ -418,8 +419,8 @@ class Miniterm(object):
                 if time.time() - self.lastTXReset > 15:
                     self.guiobject.UpdateTXStatus(False)
                 if time.time() - self.lastRXReset > 15:
-                    self.guiobject.UpdateRXStatus(False)
-                self.lastRXReset = self.startTime - 15
+                    #self.guiobject.UpdateRXStatus(False)
+                    pass
         except:
             self.alive = False
             raise
@@ -518,6 +519,14 @@ class Miniterm(object):
 
                 if not self.dataList.empty():
                     text = self.rx_decoder.decode(self.dataList.get())
+
+                    if text.find("E") >= 0:
+                        self.guiobject.UpdateRXStatus(True)
+                        lastRXReset = time.time()
+                    if text.find("P") >= 0:
+                        self.guiobject.UpdateTXStatus(True)
+                        lastTXReset = time.time()
+
                     for transformation in self.rx_transformations:
                         text = transformation.rx(text)
                         for tex in text.splitlines():
@@ -525,8 +534,6 @@ class Miniterm(object):
                                 pass
                             elif tex[:2] == 'E:':
                                 """ EGM input """
-                                self.guiobject.UpdateRXStatus(True)
-                                lastRXReset = time.time()
                                 self.console.write("GOT E")
                             elif tex[:2] == 'P:' and len(text[2:]) > 0:
                                 """ Peripheral input """
@@ -534,8 +541,6 @@ class Miniterm(object):
                                     charDecimal = int(tex[2:])
                                     chara = chr(charDecimal)
                                     self.messageBuffer += chara
-                                    self.guiobject.UpdateTXStatus(True)
-                                    lastTXReset = time.time()
                                 except ValueError:
                                     self.console.write(".")
                                     pass
