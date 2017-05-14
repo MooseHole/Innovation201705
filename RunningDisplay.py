@@ -77,9 +77,9 @@ class RunningDisplay():
     def runLoop(self):
         if self.running:
             while not self.txQueue.empty():
-                self.__UpdateButtonTX(self.txQueue.get())
+                self.__UpdateButtonTX(self.txQueue.get(False))
             while not self.rxQueue.empty():
-                self.__UpdateButtonRX(self.rxQueue.get())
+                self.__UpdateButtonRX(self.rxQueue.get(False))
             self.__handleGUIRefresh()
             self.win.update_idletasks()
             self.win.update()
