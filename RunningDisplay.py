@@ -13,7 +13,7 @@ class RunningDisplay():
         self.txQueue = queue.Queue()
         self.win = Tk()
         self.win.attributes("-fullscreen", True)
-        self.cusFont = tkFont.Font(family="Helvetica", size=40)
+        self.cusFont = tkFont.Font(family="Helvetica", size=30)
         self.running = True
     def __addLabel(self, frame, lab, text, index):
         Label(frame, text=lab, font=self.cusFont).grid(row=index, column=0, sticky=N+S+E+W)
