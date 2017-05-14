@@ -383,9 +383,9 @@ class Miniterm(object):
         self.tcler_thread.daemon = True
         self.tcler_thread.start()
 
-        self.gui_thread = threading.Thread(target=self.gui, name='guit')
-        self.gui_thread.daemon = True
-        self.gui_thread.start()
+        #self.gui_thread = threading.Thread(target=self.gui, name='guit')
+        #self.gui_thread.daemon = True
+        #self.gui_thread.start()
 
         self.watchdog_thread = threading.Thread(target=self.watchdog, name='dog')
         self.watchdog_thread.daemon = True
@@ -412,6 +412,10 @@ class Miniterm(object):
         #self.transmitter_thread.daemon = True
         #self.transmitter_thread.start()
         #self.console.setup()        
+        
+        self.gui_thread = threading.Thread(target=self.gui, name='guit')
+        self.gui_thread.daemon = True
+        self.gui_thread.start()
 
     def watchdog(self):
         try:
